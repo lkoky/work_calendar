@@ -1,0 +1,33 @@
+[Unit]
+Description=Work Calendar Backend API Service
+Documentation=https://github.com/your-repo/work-calendar
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/work_calendar
+
+# 使用Python虚拟环境
+Environment="PATH=/opt/work_calendar/.venv/bin"
+ExecStart=/opt/work_calendar/.venv/bin/python /opt/work_calendar/main.py
+
+# 重启策略
+Restart=always
+RestartSec=5
+StartLimitInterval=0
+
+# 安全设置
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/work_calendar
+
+# 日志
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

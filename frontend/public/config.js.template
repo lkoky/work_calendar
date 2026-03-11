@@ -1,0 +1,17 @@
+<!--
+环境配置模板
+由 Nginx 自动替换或后端注入
+使用说明：
+1. 将此文件保存为 config.js.template
+2. 部署时根据环境复制为 config.js 并填入实际值
+3. 在 index.html 中引入此文件
+-->
+
+<script>
+window.__WC_CONFIG__ = {
+  // 后端 API 地址
+  // 生产环境使用相对路径（Nginx 代理）：'/wc/api'
+  // 开发或测试环境可以指定完整地址：'http://192.168.1.100:8000/api'
+  apiBaseUrl: '/wc/api',
+};
+</script>
