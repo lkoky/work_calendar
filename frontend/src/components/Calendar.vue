@@ -300,14 +300,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { getTasks, createTask, summarizeWeekTasks, getWeekSummary, regenerateWeekSummary, saveWeekSummary } from '../api';
 import { MdEditor } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
 import * as XLSX from 'xlsx';
 
+const getTodayStr = () => new Date().toISOString().split('T')[0];
+
 // 响应式数据
 const currentDate = ref(new Date());
+const todayStr = ref(getTodayStr());
+let todayCheckTimer: number | undefined;
 const tasks = ref<any[]>([]);
 const showEditModal = ref(false);
 const editDate = ref('');
@@ -387,7 +391,7 @@ const calendarWeeks = computed(() => {
       lunarDate: lunarDate,
       weekday: date.getDay(),
       isCurrentMonth: date.getMonth() === month,
-      isToday: localDateStr === new Date().toISOString().split('T')[0]
+      isToday: localDateStr === todayStr.value
     };
     
     currentWeek.push(dayInfo);
@@ -563,6 +567,30 @@ onMounted(() => {
   setTimeout(() => {
     scrollToToday();
   }, 100);
+
+  todayCheckTimer = window.setInterval(() => {
+    const now = new Date();
+    const nowStr = now.toISOString().split('T')[0];
+    if (nowStr === todayStr.value) return;
+
+    todayStr.value = nowStr;
+
+    if (showEditModal.value || showSummaryModal.value) return;
+
+    if (currentYear.value !== now.getFullYear() || currentMonth.value !== now.getMonth() + 1) return;
+
+    currentDate.value = now;
+    fetchTasks();
+    setTimeout(() => {
+      scrollToToday();
+    }, 100);
+  }, 60000);
+});
+
+onBeforeUnmount(() => {
+  if (todayCheckTimer !== undefined) {
+    clearInterval(todayCheckTimer);
+  }
 });
 
 // 滚动到当日日期
@@ -682,7 +710,7 @@ const generateMonthWeeks = (year: number, month: number) => {
       lunarDate: lunarDate,
       weekday: date.getDay(),
       isCurrentMonth: date.getMonth() === month - 1,
-      isToday: localDateStr === new Date().toISOString().split('T')[0]
+      isToday: localDateStr === todayStr.value
     };
     
     currentWeek.push(dayInfo);
