@@ -164,6 +164,13 @@
         
         <div class="modal-actions">
           <button @click="closeModal" class="btn cancel">取消</button>
+          <button @click="copyTaskContent" class="btn copy">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            复制
+          </button>
           <button @click="saveTask" class="btn save">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -225,6 +232,13 @@
       
       <div class="modal-actions">
         <button @click="closeSummaryModal" class="btn cancel">关闭</button>
+        <button @click="copySummaryContent" class="btn copy">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          复制
+        </button>
         <button 
           @click="handleSaveSummary" 
           class="btn"
@@ -254,6 +268,14 @@ import { getTasks, createTask, summarizeWeekTasks, getWeekSummary, regenerateWee
 import { MdEditor } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
 import * as XLSX from 'xlsx';
+import MarkdownIt from 'markdown-it';
+
+// Markdown 渲染器（用于把 Markdown 源码渲染为 HTML，便于复制渲染后的内容）
+const md = new MarkdownIt({
+  html: false,
+  breaks: true,
+  linkify: true,
+});
 
 const getTodayStr = () => new Date().toISOString().split('T')[0];
 
@@ -509,6 +531,87 @@ const handleSaveSummary = async () => {
   } finally {
     isSaving.value = false;
   }
+};
+
+// 复制纯文本到剪贴板（降级方案：textarea + execCommand）
+const fallbackCopyText = (text: string): boolean => {
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+// 将渲染后的 HTML 转为纯文本（保留段落/换行结构）
+const htmlToPlainText = (html: string): string => {
+  let text = html;
+  // 块级结束标签后补换行
+  text = text.replace(/<\/(p|div|h[1-6]|li|blockquote|pre|tr|ul|ol|table)>/gi, '\n');
+  // <br> 转为换行
+  text = text.replace(/<br\s*\/?>/gi, '\n');
+  // 去除其余标签
+  text = text.replace(/<[^>]+>/g, '');
+  // 解码常见 HTML 实体
+  text = text
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  // 合并多余空行并去除首尾空白
+  return text.replace(/\n{3,}/g, '\n\n').trim();
+};
+
+// 复制渲染后的内容（优先富文本 HTML + 纯文本，降级仅纯文本）
+const copyRenderedContent = async (markdown: string): Promise<boolean> => {
+  const html = md.render(markdown);
+  const plainText = htmlToPlainText(html);
+
+  // 优先：写入 HTML 富文本 + 纯文本（粘贴到富文本环境保留格式）
+  if (navigator.clipboard && window.isSecureContext && typeof ClipboardItem !== 'undefined') {
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' }),
+        }),
+      ]);
+      return true;
+    } catch (e) {
+      // 继续走降级方案
+    }
+  }
+  // 降级：仅复制纯文本
+  return fallbackCopyText(plainText);
+};
+
+// 复制任务内容（渲染后的格式）
+const copyTaskContent = async () => {
+  if (!editContent.value.trim()) {
+    alert('当前没有可复制的内容');
+    return;
+  }
+  const ok = await copyRenderedContent(editContent.value);
+  alert(ok ? '复制成功' : '复制失败');
+};
+
+// 复制周汇总内容（渲染后的格式）
+const copySummaryContent = async () => {
+  if (!summaryContent.value.trim()) {
+    alert('当前没有可复制的内容');
+    return;
+  }
+  const ok = await copyRenderedContent(summaryContent.value);
+  alert(ok ? '复制成功' : '复制失败');
 };
 
 // 获取周数
@@ -1524,6 +1627,16 @@ const getWeekNumberForDate = (date: Date) => {
 .btn.cancel:hover {
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
+}
+
+.btn.copy {
+  background: rgba(var(--color-cyan-rgb), 0.12);
+  color: var(--color-accent-cyan);
+  border: 1px solid rgba(var(--color-cyan-rgb), 0.3);
+}
+
+.btn.copy:hover {
+  background: rgba(var(--color-cyan-rgb), 0.22);
 }
 
 .btn.save {
