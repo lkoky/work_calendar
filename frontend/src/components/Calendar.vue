@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="calendar-container">
     <!-- 年月切换栏 -->
     <div class="calendar-header">
@@ -37,22 +37,37 @@
           导出整年
         </button>
       </div>
-    </div>
-    
-    <!-- 周标题 -->
-    <div class="week-header">
-      <div class="week-number-header">
-        <span>周</span>
-        <span class="mini">进度</span>
-      </div>
-      <div class="week-days-header">
-        <div class="day-header">周一</div>
-        <div class="day-header">周二</div>
-        <div class="day-header">周三</div>
-        <div class="day-header">周四</div>
-        <div class="day-header">周五</div>
-        <div class="day-header weekend">周六</div>
-        <div class="day-header weekend">周日</div>
+
+      <!-- 设置按钮 + 主题选择 -->
+      <div class="settings-wrap">
+        <button @click="toggleThemePanel" class="settings-btn" :title="'当前主题：' + themeLabel">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+        <!-- 主题选择面板 -->
+        <div v-if="showThemePanel" class="theme-panel" @click.stop>
+          <div class="theme-panel-title">选择风格</div>
+          <button 
+            @click="applyTheme('night')" 
+            class="theme-option" 
+            :class="{ active: currentTheme === 'night' }"
+          >
+            <span class="theme-dot night"></span>
+            <span class="theme-name">星夜</span>
+            <span class="theme-desc">深邃静谧</span>
+          </button>
+          <button 
+            @click="applyTheme('sunny')" 
+            class="theme-option" 
+            :class="{ active: currentTheme === 'sunny' }"
+          >
+            <span class="theme-dot sunny"></span>
+            <span class="theme-name">暖阳</span>
+            <span class="theme-desc">明亮清新</span>
+          </button>
+        </div>
       </div>
     </div>
     
@@ -76,78 +91,44 @@
             :class="{ 
               'other-month': !day.isCurrentMonth, 
               'today': day.isToday,
-              'sunday': day.weekday === 0
+              'weekend': day.weekday === 0 || day.weekday === 6
             }"
             @click="handleDayClick(day)"
           >
             <div class="day-number">
               <span class="date-num">{{ day.day }}</span>
-              <span class="lunar-date">{{ day.lunarDate }}</span>
+              <span class="weekday-label">{{ getWeekdayLabel(day.weekday) }}</span>
             </div>
             
-            <!-- 周日不区分上午下午，只显示一个任务区域 -->
+            <!-- 统一任务区域（合并展示 morning + afternoon 历史数据） -->
             <div class="tasks-wrapper">
-              <template v-if="day.weekday === 0">
-                <div class="task-section sunday-task" style='height:240px'>
-                  <div v-if="getTaskByDateAndPart(day.date, 'morning')" class="task-content">
-                    {{ getTaskByDateAndPart(day.date, 'morning').task_content }}
-                  </div>
-                  <div v-else class="task-placeholder">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="8" x2="12" y2="12"></line>
-                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    点击添加汇总任务
-                  </div>
+              <div 
+                class="task-section" 
+                :class="(day.weekday === 0 || day.weekday === 6) ? 'weekend-task' : 'unified'"
+              >
+                <div v-if="getMergedTaskContent(day.date)" class="task-content">
+                  {{ getMergedTaskContent(day.date) }}
                 </div>
-                <!-- 周日汇总按钮 -->
-                <div class="summary-btn" @click.stop="handleSummaryClick(day.date)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10 9 9 9 8 9"></polyline>
+                <div v-else class="task-placeholder">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
                   </svg>
-                  汇总本周
+                  {{ day.weekday === 0 ? '添加重点' : '添加任务' }}
                 </div>
-              </template>
-              
-              <!-- 非周日区分上午下午 -->
-              <template v-else>
-                <!-- 上午任务 -->
-                <div class="task-section morning">
-                  <div class="section-label">AM</div>
-                  <div v-if="getTaskByDateAndPart(day.date, 'morning')" class="task-content">
-                    {{ getTaskByDateAndPart(day.date, 'morning').task_content }}
-                  </div>
-                  <div v-else class="task-placeholder">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="8" x2="12" y2="12"></line>
-                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    点击添加
-                  </div>
-                </div>
-                
-                <!-- 下午任务 -->
-                <div class="task-section afternoon">
-                  <div class="section-label">PM</div>
-                  <div v-if="getTaskByDateAndPart(day.date, 'afternoon')" class="task-content">
-                    {{ getTaskByDateAndPart(day.date, 'afternoon').task_content }}
-                  </div>
-                  <div v-else class="task-placeholder">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="8" x2="12" y2="12"></line>
-                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    点击添加
-                  </div>
-                </div>
-              </template>
+              </div>
+              <!-- 周日汇总按钮 -->
+              <div v-if="day.weekday === 0" class="summary-btn" @click.stop="handleSummaryClick(day.date)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                汇总本周
+              </div>
             </div>
           </div>
         </div>
@@ -155,7 +136,7 @@
     </div>
     
     <!-- 任务编辑弹窗 -->
-    <div v-if="showEditModal" class="modal-overlay">
+    <div v-if="showEditModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal-content">
         <div class="modal-header">
           <h3>{{ editDate }} 当日任务</h3>
@@ -168,49 +149,17 @@
         </div>
         
         <div class="modal-body" style="padding:0">
-          <!-- 周日不区分上午下午，只显示一个任务区域 -->
-          <template v-if="isSunday">
-            <div class="modal-task-section" >
-              <MdEditor 
-                v-model="editMorningContent" 
-                placeholder="请输入任务内容（支持 Markdown 格式）..."
-                language="zh-CN"
-                :toolbars="editorToolbars"
-                :screenfull="true"
-                :style="{ height: '500px' }"
-                class="md-editor"
-              />
-            </div>
-          </template>
-          
-          <!-- 非周日区分上午下午 -->
-          <template v-else>
-            <!-- 上午任务 -->
-            <div class="modal-task-section" style="padding:0">
-              <MdEditor 
-                v-model="editMorningContent" 
-                placeholder="请输入上午任务内容（支持 Markdown 格式）..."
-                language="zh-CN"
-                :toolbars="editorToolbars"
-                :screenfull="true"
-                :style="{ height: '250px' }"
-                class="md-editor md-editor-morning"
-              />
-            </div>
-            
-            <!-- 下午任务 -->
-            <div class="modal-task-section"  style="padding:4px 0 0 0">
-              <MdEditor 
-                v-model="editAfternoonContent" 
-                placeholder="请输入下午任务内容（支持 Markdown 格式）..."
-                language="zh-CN"
-                :toolbars="editorToolbars"
-                :screenfull="true"
-                :style="{ height: '350px' }"
-                class="md-editor md-editor-afternoon"
-              />
-            </div>
-          </template>
+          <div class="modal-task-section">
+            <MdEditor 
+              v-model="editContent" 
+              placeholder="请输入任务内容（支持 Markdown 格式）..."
+              language="zh-CN"
+              :toolbars="editorToolbars"
+              :screenfull="true"
+              :style="{ height: '500px' }"
+              class="md-editor"
+            />
+          </div>
         </div>
         
         <div class="modal-actions">
@@ -229,7 +178,7 @@
   </div>
 
   <!-- 周汇总弹窗 -->
-  <div v-if="showSummaryModal" class="modal-overlay">
+  <div v-if="showSummaryModal" class="modal-overlay" @click.self="closeSummaryModal">
     <div class="modal-content">
       <div class="modal-header">
         <div style="display: flex; align-items: center; gap: 12px;">
@@ -237,7 +186,7 @@
             @click="handleRegenerateSummary" 
             class="btn"
             :disabled="isRegenerating"
-            style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 8px 16px; font-size: 12px; border-radius: 8px;"
+            style="background: linear-gradient(135deg, var(--color-accent-orange) 0%, #d97706 100%); padding: 8px 16px; font-size: 12px; border-radius: 8px;"
           >
             <svg v-if="isRegenerating" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10" stroke-dasharray="30" stroke-dashoffset="10">
@@ -315,9 +264,7 @@ let todayCheckTimer: number | undefined;
 const tasks = ref<any[]>([]);
 const showEditModal = ref(false);
 const editDate = ref('');
-const editMorningContent = ref('');
-const editAfternoonContent = ref('');
-const isSunday = ref(false);
+const editContent = ref('');
 
 // 周汇总弹窗
 const showSummaryModal = ref(false);
@@ -325,6 +272,39 @@ const summaryDate = ref('');
 const summaryContent = ref('');
 const isRegenerating = ref(false);
 const isSaving = ref(false);
+
+// ===== 主题系统 =====
+const currentTheme = ref<'night' | 'sunny'>('night');
+const showThemePanel = ref(false);
+const THEME_LABEL: Record<string, string> = { night: '星夜', sunny: '暖阳' };
+const themeLabel = computed(() => THEME_LABEL[currentTheme.value]);
+
+/** 切换主题选择面板显示 */
+const toggleThemePanel = () => { showThemePanel.value = !showThemePanel.value; };
+
+/** 应用指定主题：设置 data-theme + 持久化到 localStorage */
+const applyTheme = (theme: 'night' | 'sunny') => {
+  currentTheme.value = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('work_calendar_theme', theme);
+  showThemePanel.value = false;
+};
+
+/** 初始化主题：从 localStorage 读取，或默认星夜 */
+const initTheme = () => {
+  const saved = localStorage.getItem('work_calendar_theme') as 'night' | 'sunny' | null;
+  const theme = saved || 'night';
+  currentTheme.value = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+};
+
+// 点击面板外部关闭
+const handlePanelClickOutside = (e: MouseEvent) => {
+  const target = e.target as HTMLElement;
+  if (!target.closest('.settings-wrap')) {
+    showThemePanel.value = false;
+  }
+};
 
 // Markdown 编辑器工具栏配置
 const editorToolbars = [
@@ -383,12 +363,9 @@ const calendarWeeks = computed(() => {
     const dayStr = String(date.getDate()).padStart(2, '0');
     const localDateStr = `${year}-${monthStr}-${dayStr}`;
     
-    const lunarDate = getLunarDate(date);
-    
     const dayInfo = {
       date: localDateStr,
       day: date.getDate(),
-      lunarDate: lunarDate,
       weekday: date.getDay(),
       isCurrentMonth: date.getMonth() === month,
       isToday: localDateStr === todayStr.value
@@ -428,27 +405,35 @@ const getTaskByDateAndPart = (date: string, part: string) => {
   return tasks.value.find(task => task.date === date && task.part === part);
 };
 
+/**
+ * 获取某日合并后的完整任务内容
+ * 历史数据中可能同时存在 morning 和 afternoon 两条记录，
+ * 新设计统一展示，需要将两部分内容拼接在一起
+ */
+const getMergedTaskContent = (date: string): string => {
+  const morning = getTaskByDateAndPart(date, 'morning')?.task_content?.trim() || '';
+  const afternoon = getTaskByDateAndPart(date, 'afternoon')?.task_content?.trim() || '';
+  if (morning && afternoon) {
+    // 若 morning 已包含 afternoon 内容（历史脏数据），避免重复拼接
+    if (morning.includes(afternoon)) {
+      return morning;
+    }
+    return morning + '\n\n' + afternoon;
+  }
+  return morning || afternoon;
+};
+
 // 处理日期点击
 const handleDayClick = (day: any) => {
   editDate.value = day.date;
-  isSunday.value = day.weekday === 0;
-  
-  const morningTask = getTaskByDateAndPart(day.date, 'morning');
-  editMorningContent.value = morningTask?.task_content || '';
-  
-  if (!isSunday.value) {
-    const afternoonTask = getTaskByDateAndPart(day.date, 'afternoon');
-    editAfternoonContent.value = afternoonTask?.task_content || '';
-  }
-  
+  editContent.value = getMergedTaskContent(day.date);
   showEditModal.value = true;
 };
 
 // 关闭弹窗
 const closeModal = () => {
   showEditModal.value = false;
-  editMorningContent.value = '';
-  editAfternoonContent.value = '';
+  editContent.value = '';
 };
 
 // 保存任务
@@ -457,18 +442,9 @@ const saveTask = async () => {
     await createTask({
       date: editDate.value,
       part: 'morning',
-      task_content: editMorningContent.value,
+      task_content: editContent.value,
       task_type: 'completed'
     });
-    
-    if (!isSunday.value) {
-      await createTask({
-        date: editDate.value,
-        part: 'afternoon',
-        task_content: editAfternoonContent.value,
-        task_type: 'completed'
-      });
-    }
     
     await fetchTasks();
     closeModal();
@@ -477,18 +453,10 @@ const saveTask = async () => {
   }
 };
 
-// 计算农历日期（简化版）
-const getLunarDate = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  
-  const lunarMonths = ['正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
-  const lunarDays = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
-                     '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
-                     '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
-  
-  return `${lunarMonths[month - 1]}${lunarDays[day - 1]}`;
+// 获取星期标签（0=周日, 1=周一 ... 6=周六）
+const getWeekdayLabel = (weekday: number): string => {
+  const labels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  return labels[weekday];
 };
 
 // 处理汇总点击
@@ -563,10 +531,14 @@ const getYearPercentage = (day: any) => {
 
 // 组件挂载时获取任务数据
 onMounted(() => {
+  initTheme();
   fetchTasks();
   setTimeout(() => {
     scrollToToday();
   }, 100);
+
+  // 点击面板外部关闭
+  document.addEventListener('click', handlePanelClickOutside);
 
   todayCheckTimer = window.setInterval(() => {
     const now = new Date();
@@ -591,6 +563,7 @@ onBeforeUnmount(() => {
   if (todayCheckTimer !== undefined) {
     clearInterval(todayCheckTimer);
   }
+  document.removeEventListener('click', handlePanelClickOutside);
 });
 
 // 滚动到当日日期
@@ -634,22 +607,13 @@ const exportMonthData = (year: number, month: number) => {
     const rowData = [`第${weekNum}周 (${yearPercent}%)`];
     
     week.forEach(day => {
-      const morningTask = getTaskByDateAndPart(day.date, 'morning');
-      const afternoonTask = getTaskByDateAndPart(day.date, 'afternoon');
+      const merged = getMergedTaskContent(day.date);
       
       let cellContent = '';
-      if (day.weekday === 0) {
-        // 周日只有汇总任务
-        if (morningTask) {
-          cellContent = `${day.date}\n${morningTask.task_content || ''}`;
-        } else {
-          cellContent = day.date;
-        }
+      if (merged) {
+        cellContent = `${day.date}\n${merged}`;
       } else {
-        // 其他日期区分上午下午
-        const morning = morningTask ? morningTask.task_content : '';
-        const afternoon = afternoonTask ? afternoonTask.task_content : '';
-        cellContent = `${day.date}\nAM: ${morning}\nPM: ${afternoon}`;
+        cellContent = day.date;
       }
       rowData.push(cellContent);
     });
@@ -702,12 +666,9 @@ const generateMonthWeeks = (year: number, month: number) => {
     const d = String(date.getDate()).padStart(2, '0');
     const localDateStr = `${y}-${m}-${d}`;
     
-    const lunarDate = getLunarDate(date);
-    
     const dayInfo = {
       date: localDateStr,
       day: date.getDate(),
-      lunarDate: lunarDate,
       weekday: date.getDay(),
       isCurrentMonth: date.getMonth() === month - 1,
       isToday: localDateStr === todayStr.value
@@ -748,20 +709,23 @@ const getWeekNumberForDate = (date: Date) => {
   align-items: center;
   margin-bottom: 30px;
   padding: 20px 30px;
-  background: linear-gradient(135deg, rgba(26, 31, 58, 0.8) 0%, rgba(10, 14, 39, 0.9) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: var(--color-bg-header);
+  border: 1px solid var(--color-border-header);
   border-radius: 16px;
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+  z-index: 20;
+  overflow: visible;
 }
 
 .nav-btn {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.3);
+  background: linear-gradient(135deg, rgba(var(--color-cyan-rgb), 0.15) 0%, rgba(var(--color-purple-rgb), 0.15) 100%);
+  border: 1px solid rgba(var(--color-cyan-rgb), 0.3);
   padding: 12px 16px;
   border-radius: 12px;
   cursor: pointer;
-  color: #00d4ff;
+  color: var(--color-accent-cyan);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
@@ -769,10 +733,10 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .nav-btn:hover {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.3) 0%, rgba(139, 92, 246, 0.3) 100%);
-  border-color: rgba(0, 212, 255, 0.6);
+  background: linear-gradient(135deg, rgba(var(--color-cyan-rgb), 0.3) 0%, rgba(var(--color-purple-rgb), 0.3) 100%);
+  border-color: rgba(var(--color-cyan-rgb), 0.6);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 212, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(var(--color-cyan-rgb), 0.3);
 }
 
 .nav-btn:active {
@@ -786,12 +750,12 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .export-btn {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%);
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: linear-gradient(135deg, rgba(var(--color-green-rgb), 0.15) 0%, rgba(16, 185, 129, 0.15) 100%);
+  border: 1px solid rgba(var(--color-green-rgb), 0.3);
   padding: 10px 18px;
   border-radius: 10px;
   cursor: pointer;
-  color: #22c55e;
+  color: var(--color-accent-green);
   font-size: 13px;
   font-weight: 600;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -801,28 +765,28 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .export-btn:hover {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.3) 0%, rgba(16, 185, 129, 0.3) 100%);
-  border-color: rgba(34, 197, 94, 0.6);
+  background: linear-gradient(135deg, rgba(var(--color-green-rgb), 0.3) 0%, rgba(16, 185, 129, 0.3) 100%);
+  border-color: rgba(var(--color-green-rgb), 0.6);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 8px 24px rgba(var(--color-green-rgb), 0.3);
 }
 
 .export-btn.year {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(234, 179, 8, 0.15) 100%);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #f59e0b;
+  background: linear-gradient(135deg, rgba(var(--color-orange-rgb), 0.15) 0%, rgba(234, 179, 8, 0.15) 100%);
+  border: 1px solid rgba(var(--color-orange-rgb), 0.3);
+  color: var(--color-accent-orange);
 }
 
 .export-btn.year:hover {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.3) 0%, rgba(234, 179, 8, 0.3) 100%);
-  border-color: rgba(245, 158, 11, 0.6);
-  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, rgba(var(--color-orange-rgb), 0.3) 0%, rgba(234, 179, 8, 0.3) 100%);
+  border-color: rgba(var(--color-orange-rgb), 0.6);
+  box-shadow: 0 8px 24px rgba(var(--color-orange-rgb), 0.3);
 }
 
 .header-title {
   font-size: 28px;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text-primary);
   letter-spacing: 2px;
   display: flex;
   align-items: center;
@@ -830,18 +794,18 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .header-title .year {
-  color: #00d4ff;
-  text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+  color: var(--color-accent-cyan);
+  text-shadow: 0 0 20px rgba(var(--color-cyan-rgb), 0.5);
 }
 
 .header-title .divider {
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--color-text-muted);
   font-weight: 300;
 }
 
 .header-title .month {
-  color: #8b5cf6;
-  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+  color: var(--color-accent-purple);
+  text-shadow: 0 0 20px rgba(var(--color-purple-rgb), 0.5);
 }
 
 .week-header {
@@ -854,13 +818,13 @@ const getWeekNumberForDate = (date: Date) => {
   width: 80px;
   flex-shrink: 0;
   padding: 12px 8px;
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  background: linear-gradient(135deg, rgba(var(--color-cyan-rgb), 0.1) 0%, rgba(var(--color-purple-rgb), 0.1) 100%);
+  border: 1px solid rgba(var(--color-cyan-rgb), 0.2);
   border-radius: 12px;
   text-align: center;
   font-weight: 600;
   font-size: 13px;
-  color: #00d4ff;
+  color: var(--color-accent-cyan);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -868,7 +832,7 @@ const getWeekNumberForDate = (date: Date) => {
 
 .week-number-header .mini {
   font-size: 11px;
-  color: rgba(0, 212, 255, 0.6);
+  color: rgba(var(--color-cyan-rgb), 0.6);
   font-weight: 400;
 }
 
@@ -879,24 +843,6 @@ const getWeekNumberForDate = (date: Date) => {
   gap: 8px;
   padding-left: 8px;
   min-width: 0;
-}
-
-.day-header {
-  padding: 16px 12px;
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.15);
-  border-radius: 12px;
-  text-align: center;
-  font-weight: 600;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
-  letter-spacing: 1px;
-}
-
-.day-header.weekend {
-  color: #f472b6;
-  border-color: rgba(244, 114, 182, 0.3);
-  background: linear-gradient(135deg, rgba(244, 114, 182, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
 }
 
 .week-info {
@@ -914,17 +860,18 @@ const getWeekNumberForDate = (date: Date) => {
   width: 80px;
   flex-shrink: 0;
   padding: 12px 8px;
-  background: linear-gradient(135deg, rgba(26, 31, 58, 0.6) 0%, rgba(10, 14, 39, 0.8) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.15);
+  background: var(--color-bg-task-section);
+  border: 1px solid var(--color-border-cell);
   border-radius: 12px;
   text-align: center;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
   gap: 8px;
   justify-content: center;
   align-items: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .week-label {
@@ -941,14 +888,14 @@ const getWeekNumberForDate = (date: Date) => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00d4ff 0%, #8b5cf6 100%);
+  background: linear-gradient(90deg, var(--color-accent-cyan) 0%, var(--color-accent-purple) 100%);
   border-radius: 2px;
   transition: width 0.5s ease;
 }
 
 .year-percentage {
   font-size: 12px;
-  color: #00d4ff;
+  color: var(--color-accent-cyan);
   font-weight: 500;
 }
 
@@ -962,8 +909,8 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .day-cell {
-  background: linear-gradient(135deg, rgba(26, 31, 58, 0.7) 0%, rgba(10, 14, 39, 0.9) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.15);
+  background: var(--color-bg-cell);
+  border: 1px solid var(--color-border-cell);
   border-radius: 16px;
   padding: 12px;
   min-height: 320px;
@@ -972,6 +919,7 @@ const getWeekNumberForDate = (date: Date) => {
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(10px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -984,15 +932,15 @@ const getWeekNumberForDate = (date: Date) => {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent 0%, rgba(0, 212, 255, 0.5) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(var(--color-cyan-rgb), 0.5) 50%, transparent 100%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 
 .day-cell:hover {
   transform: translateY(-4px);
-  box-shadow: 0 16px 48px rgba(0, 212, 255, 0.2), 0 8px 24px rgba(0, 0, 0, 0.4);
-  border-color: rgba(0, 212, 255, 0.4);
+  box-shadow: 0 16px 48px rgba(var(--color-cyan-rgb), 0.2), 0 8px 24px rgba(0, 0, 0, 0.4);
+  border-color: rgba(var(--color-cyan-rgb), 0.4);
 }
 
 .day-cell:hover::before {
@@ -1000,9 +948,9 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .other-month {
-  background: linear-gradient(135deg, rgba(15, 18, 35, 0.6) 0%, rgba(8, 10, 22, 0.7) 100%);
-  border-color: rgba(255, 255, 255, 0.03);
-  opacity: 0.6;
+  background: var(--color-bg-other-month);
+  border-color: var(--color-border-other-month);
+  opacity: var(--color-opacity-other-month);
 }
 
 .other-month .day-number {
@@ -1022,9 +970,9 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .today {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
-  border-color: rgba(0, 212, 255, 0.6);
-  box-shadow: 0 0 30px rgba(0, 212, 255, 0.2), inset 0 0 20px rgba(0, 212, 255, 0.05);
+  background: var(--color-bg-today);
+  border: 2px solid var(--color-border-today);
+  box-shadow: 0 0 30px rgba(var(--color-cyan-rgb), 0.3), inset 0 0 20px rgba(var(--color-cyan-rgb), 0.08);
 }
 
 .today::after {
@@ -1034,7 +982,7 @@ const getWeekNumberForDate = (date: Date) => {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(var(--color-cyan-rgb), 0.1) 0%, transparent 60%);
   animation: pulse 3s ease-in-out infinite;
 }
 
@@ -1049,8 +997,14 @@ const getWeekNumberForDate = (date: Date) => {
   }
 }
 
-.sunday {
-  border-color: rgba(244, 114, 182, 0.3);
+.weekend {
+  border-color: var(--color-border-weekend);
+  background: var(--color-bg-weekend);
+}
+
+.weekend .weekday-label {
+  color: var(--color-text-weekend);
+  font-weight: 600;
 }
 
 .day-number {
@@ -1065,31 +1019,22 @@ const getWeekNumberForDate = (date: Date) => {
 
 .date-num {
   font-size: 20px;
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
-.lunar-date {
+.weekday-label {
   font-size: 11px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
 .today .day-number {
-  background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, var(--color-accent-cyan) 0%, var(--color-accent-purple) 100%);
   color: white;
   padding: 8px 14px;
   border-radius: 24px;
   margin-bottom: 16px;
-  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.4);
-}
-
-.today .lunar-date {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 10px;
-}
-
-.other-month .lunar-date {
-  color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(var(--color-cyan-rgb), 0.4);
 }
 
 .task-section {
@@ -1119,12 +1064,12 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .tasks-wrapper::-webkit-scrollbar-thumb {
-  background: rgba(0, 212, 255, 0.3);
+  background: rgba(var(--color-cyan-rgb), 0.3);
   border-radius: 2px;
 }
 
 .tasks-wrapper::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 212, 255, 0.5);
+  background: rgba(var(--color-cyan-rgb), 0.5);
 }
 
 .task-section::-webkit-scrollbar {
@@ -1137,64 +1082,31 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .task-section::-webkit-scrollbar-thumb {
-  background: rgba(0, 212, 255, 0.3);
+  background: rgba(var(--color-cyan-rgb), 0.3);
   border-radius: 2px;
 }
 
 .task-section::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 212, 255, 0.5);
+  background: rgba(var(--color-cyan-rgb), 0.5);
 }
 
-.morning {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-}
-
-.afternoon {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 212, 255, 0.05) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.2);
-}
-
-.sunday-task {
-  background: linear-gradient(135deg, rgba(244, 114, 182, 0.15) 0%, rgba(244, 114, 182, 0.05) 100%);
-  border: 1px solid rgba(244, 114, 182, 0.2);
-  max-height: 240px;
-}
-
-.section-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-  opacity: 0.7;
-}
-
-.morning .section-label {
-  color: #8b5cf6;
-}
-
-.afternoon .section-label {
-  color: #00d4ff;
+.weekend-task {
+  background: var(--color-bg-weekend-task);
+  border: 1px solid var(--color-border-weekend-task);
 }
 
 .task-content {
   font-size: 13px;
   line-height: 1.6;
   text-align: left;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-primary);
   word-break: break-word;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-height: 8.8em;
+  white-space: pre-wrap;
 }
 
 .task-placeholder {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--color-text-muted);
   font-style: normal;
   text-align: left;
   display: flex;
@@ -1206,7 +1118,7 @@ const getWeekNumberForDate = (date: Date) => {
   position: absolute;
   bottom: 12px;
   right: 12px;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  background: linear-gradient(135deg, var(--color-accent-orange) 0%, #d97706 100%);
   color: white;
   padding: 8px 14px;
   border-radius: 10px;
@@ -1218,12 +1130,12 @@ const getWeekNumberForDate = (date: Date) => {
   gap: 6px;
   z-index: 2;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--color-orange-rgb), 0.3);
 }
 
 .summary-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+  box-shadow: 0 6px 16px rgba(var(--color-orange-rgb), 0.4);
 }
 
 .modal-overlay {
@@ -1251,14 +1163,14 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .modal-content {
-  background: linear-gradient(135deg, rgba(26, 31, 58, 0.95) 0%, rgba(10, 14, 39, 0.98) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.3);
+  background: var(--color-bg-modal);
+  border: 1px solid var(--color-border-modal);
   padding: 0;
   border-radius: 20px;
   width: 90%;
   max-width: 900px;
   max-height: 85vh;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 0 60px rgba(0, 212, 255, 0.1);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 0 60px rgba(var(--color-cyan-rgb), 0.1);
   overflow: hidden;
   animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -1281,22 +1193,22 @@ const getWeekNumberForDate = (date: Date) => {
   justify-content: space-between;
   align-items: center;
   padding: 11px 14px;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.15);
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border-bottom: 1px solid rgba(var(--color-cyan-rgb), 0.15);
+  background: linear-gradient(135deg, rgba(var(--color-cyan-rgb), 0.05) 0%, rgba(var(--color-purple-rgb), 0.05) 100%);
   flex-shrink: 0;
 }
 
 .modal-header h3 {
   font-size: 15px;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .close-btn {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 4px;
   border-radius: 6px;
@@ -1307,7 +1219,7 @@ const getWeekNumberForDate = (date: Date) => {
 
 .close-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 .modal-body {
@@ -1326,7 +1238,7 @@ const getWeekNumberForDate = (date: Date) => {
 
 .modal-task-section h4 {
   margin-bottom: 16px;
-  color: #fff;
+  color: var(--color-text-primary);
   font-size: 15px;
   font-weight: 600;
   display: flex;
@@ -1343,49 +1255,49 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .tag.am {
-  background: rgba(139, 92, 246, 0.2);
-  color: #8b5cf6;
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: rgba(var(--color-purple-rgb), 0.2);
+  color: var(--color-accent-purple);
+  border: 1px solid rgba(var(--color-purple-rgb), 0.3);
 }
 
 .tag.pm {
-  background: rgba(0, 212, 255, 0.2);
-  color: #00d4ff;
-  border: 1px solid rgba(0, 212, 255, 0.3);
+  background: rgba(var(--color-cyan-rgb), 0.2);
+  color: var(--color-accent-cyan);
+  border: 1px solid rgba(var(--color-cyan-rgb), 0.3);
 }
 
 .md-editor {
   width: 100%;
   height: 200px;
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  border: 1px solid rgba(var(--color-cyan-rgb), 0.2);
   border-radius: 12px;
   overflow: hidden;
   background: rgba(10, 14, 39, 0.6);
 }
 
 .md-editor-morning {
-  border: 1px solid rgba(139, 92, 246, 0.4);
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border: 1px solid rgba(var(--color-purple-rgb), 0.4);
+  background: linear-gradient(135deg, rgba(var(--color-purple-rgb), 0.1) 0%, rgba(var(--color-purple-rgb), 0.05) 100%);
 }
 
 .md-editor-morning :deep(.md-editor-toolbar-wrapper) {
-  background: rgba(139, 92, 246, 0.15);
-  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgba(var(--color-purple-rgb), 0.15);
+  border-bottom: 1px solid rgba(var(--color-purple-rgb), 0.2);
 }
 
 .md-editor-afternoon {
-  border: 1px solid rgba(0, 212, 255, 0.4);
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(0, 212, 255, 0.05) 100%);
+  border: 1px solid rgba(var(--color-cyan-rgb), 0.4);
+  background: linear-gradient(135deg, rgba(var(--color-cyan-rgb), 0.1) 0%, rgba(var(--color-cyan-rgb), 0.05) 100%);
 }
 
 .md-editor-afternoon :deep(.md-editor-toolbar-wrapper) {
-  background: rgba(0, 212, 255, 0.15);
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+  background: rgba(var(--color-cyan-rgb), 0.15);
+  border-bottom: 1px solid rgba(var(--color-cyan-rgb), 0.2);
 }
 
 .md-editor :deep(.md-editor-toolbar-wrapper) {
   background: rgba(26, 31, 58, 0.8);
-  border-bottom: 1px solid rgba(0, 212, 255, 0.15);
+  border-bottom: 1px solid rgba(var(--color-cyan-rgb), 0.15);
 }
 
 .md-editor :deep(.md-editor-toolbar) {
@@ -1421,13 +1333,13 @@ const getWeekNumberForDate = (date: Date) => {
 .md-editor :deep(.md-editor-preview h4),
 .md-editor :deep(.md-editor-preview h5),
 .md-editor :deep(.md-editor-preview h6) {
-  color: #00d4ff;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+  color: var(--color-accent-cyan);
+  border-bottom: 1px solid rgba(var(--color-cyan-rgb), 0.2);
 }
 
 .md-editor :deep(.md-editor-preview code) {
-  background: rgba(0, 212, 255, 0.1);
-  color: #f472b6;
+  background: rgba(var(--color-cyan-rgb), 0.1);
+  color: var(--color-accent-pink);
   padding: 2px 6px;
   border-radius: 4px;
 }
@@ -1444,15 +1356,15 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .md-editor :deep(.md-editor-preview blockquote) {
-  border-left: 4px solid #00d4ff;
-  background: rgba(0, 212, 255, 0.05);
+  border-left: 4px solid var(--color-accent-cyan);
+  background: rgba(var(--color-cyan-rgb), 0.05);
   padding: 8px 12px;
   margin: 8px 0;
   color: rgba(255, 255, 255, 0.85);
 }
 
 .md-editor :deep(.md-editor-preview a) {
-  color: #00d4ff;
+  color: var(--color-accent-cyan);
 }
 
 .md-editor :deep(.md-editor-preview ul),
@@ -1461,16 +1373,16 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .md-editor :deep(.md-editor-preview table) {
-  border-color: rgba(0, 212, 255, 0.3);
+  border-color: rgba(var(--color-cyan-rgb), 0.3);
 }
 
 .md-editor :deep(.md-editor-preview th) {
-  background: rgba(0, 212, 255, 0.1);
-  color: #00d4ff;
+  background: rgba(var(--color-cyan-rgb), 0.1);
+  color: var(--color-accent-cyan);
 }
 
 .md-editor :deep(.md-editor-preview td) {
-  border-color: rgba(0, 212, 255, 0.2);
+  border-color: rgba(var(--color-cyan-rgb), 0.2);
 }
 
 .md-editor :deep(.md-editor-input) {
@@ -1490,8 +1402,8 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .md-editor :deep(.md-editor-toolbar-item:hover) {
-  color: #00d4ff;
-  background: rgba(0, 212, 255, 0.1);
+  color: var(--color-accent-cyan);
+  background: rgba(var(--color-cyan-rgb), 0.1);
 }
 
 .md-editor :deep(.md-editor-fullscreen .md-editor-toolbar-item),
@@ -1501,13 +1413,13 @@ const getWeekNumberForDate = (date: Date) => {
 
 .md-editor :deep(.md-editor-fullscreen .md-editor-toolbar-item:hover),
 .md-editor :deep(.md-editor-pagefullscreen .md-editor-toolbar-item:hover) {
-  color: #00d4ff !important;
-  background: rgba(0, 212, 255, 0.15) !important;
+  color: var(--color-accent-cyan) !important;
+  background: rgba(var(--color-cyan-rgb), 0.15) !important;
 }
 
 .md-editor :deep(.md-editor-footer) {
   background: rgba(35, 40, 70, 0.98);
-  border-top: 1px solid rgba(0, 212, 255, 0.3);
+  border-top: 1px solid rgba(var(--color-cyan-rgb), 0.3);
   display: flex;
   align-items: center;
   gap: 16px;
@@ -1527,21 +1439,21 @@ const getWeekNumberForDate = (date: Date) => {
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: #00d4ff;
+  accent-color: var(--color-accent-cyan);
   background-color: rgba(0, 0, 0, 0.5);
-  border: 2px solid rgba(0, 212, 255, 0.5);
+  border: 2px solid rgba(var(--color-cyan-rgb), 0.5);
   border-radius: 4px;
 }
 
 .md-editor :deep(.md-editor-footer-item input[type="checkbox"]:checked) {
-  accent-color: #00d4ff;
-  background-color: #00d4ff;
-  border-color: #00d4ff;
-  box-shadow: 0 0 12px rgba(0, 212, 255, 0.7), inset 0 0 0 2px white;
+  accent-color: var(--color-accent-cyan);
+  background-color: var(--color-accent-cyan);
+  border-color: var(--color-accent-cyan);
+  box-shadow: 0 0 12px rgba(var(--color-cyan-rgb), 0.7), inset 0 0 0 2px white;
 }
 
 .md-editor :deep(.md-editor-footer-item strong) {
-  color: #00d4ff;
+  color: var(--color-accent-cyan);
   font-weight: 700;
 }
 
@@ -1555,12 +1467,12 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .md-editor :deep(.md-editor-input-wrapper::-webkit-scrollbar-thumb) {
-  background: rgba(0, 212, 255, 0.4);
+  background: rgba(var(--color-cyan-rgb), 0.4);
   border-radius: 3px;
 }
 
 .md-editor :deep(.md-editor-input-wrapper::-webkit-scrollbar-thumb:hover) {
-  background: rgba(0, 212, 255, 0.6);
+  background: rgba(var(--color-cyan-rgb), 0.6);
 }
 
 .md-editor :deep(.md-editor-preview-wrapper::-webkit-scrollbar) {
@@ -1573,12 +1485,12 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .md-editor :deep(.md-editor-preview-wrapper::-webkit-scrollbar-thumb) {
-  background: rgba(0, 212, 255, 0.4);
+  background: rgba(var(--color-cyan-rgb), 0.4);
   border-radius: 3px;
 }
 
 .md-editor :deep(.md-editor-preview-wrapper::-webkit-scrollbar-thumb:hover) {
-  background: rgba(0, 212, 255, 0.6);
+  background: rgba(var(--color-cyan-rgb), 0.6);
 }
 
 .modal-actions {
@@ -1586,7 +1498,7 @@ const getWeekNumberForDate = (date: Date) => {
   justify-content: flex-end;
   gap: 8px;
   padding: 10px 14px;
-  border-top: 1px solid rgba(0, 212, 255, 0.15);
+  border-top: 1px solid rgba(var(--color-cyan-rgb), 0.15);
   flex-shrink: 0;
 }
 
@@ -1615,17 +1527,216 @@ const getWeekNumberForDate = (date: Date) => {
 }
 
 .btn.save {
-  background: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, var(--color-accent-cyan) 0%, var(--color-accent-purple) 100%);
   color: white;
-  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(var(--color-cyan-rgb), 0.3);
 }
 
 .btn.save:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 212, 255, 0.4);
+  box-shadow: 0 8px 24px rgba(var(--color-cyan-rgb), 0.4);
 }
 
 .btn.save:active {
   transform: translateY(0);
 }
+
+/* ===== 设置按钮 + 主题面板 ===== */
+.settings-wrap {
+  position: relative;
+  margin-left: 20px;
+}
+
+.settings-btn {
+  background: var(--color-nav-btn-bg);
+  border: 1px solid var(--color-nav-btn-border);
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--color-accent-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.settings-btn:hover {
+  transform: rotate(45deg);
+  border-color: var(--color-accent-cyan);
+  box-shadow: 0 4px 16px rgba(var(--color-cyan-rgb), 0.2);
+}
+
+.theme-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 220px;
+  background: var(--color-bg-modal);
+  border: 1px solid var(--color-border-modal);
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  z-index: 500;
+  animation: themePanelIn 0.2s ease;
+}
+
+@keyframes themePanelIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.theme-panel-title {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 8px 10px 6px;
+  text-align: center;
+}
+
+.theme-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  transition: all 0.25s ease;
+}
+
+.theme-option:hover {
+  background: rgba(var(--color-cyan-rgb), 0.08);
+}
+
+.theme-option.active {
+  background: rgba(var(--color-cyan-rgb), 0.12);
+  border-color: rgba(var(--color-cyan-rgb), 0.4);
+}
+
+.theme-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(var(--color-cyan-rgb), 0.2);
+}
+
+.theme-dot.night {
+  background: linear-gradient(135deg, #0a0e27 0%, #00d4ff 50%, #8b5cf6 100%);
+}
+
+.theme-dot.sunny {
+  background: linear-gradient(135deg, #f5f7fa 0%, #3b82f6 50%, #f59e0b 100%);
+}
+
+.theme-name {
+  font-size: 14px;
+  font-weight: 600;
+  flex: 1;
+  text-align: left;
+}
+
+.theme-desc {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* ===== 暖阳主题：Markdown 编辑器浅色适配 ===== */
+[data-theme="sunny"] .md-editor {
+  background: #ffffff;
+  border-color: rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-toolbar-wrapper) {
+  background: #f8fafc;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.12);
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-content) {
+  background: #ffffff;
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-preview-wrapper) {
+  background: #fafbfc;
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-preview) {
+  color: #1f2937;
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-preview pre) {
+  background: #f3f4f6;
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-preview pre code) {
+  color: #1f2937;
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-preview blockquote) {
+  background: rgba(59, 130, 246, 0.04);
+  color: #4b5563;
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-preview ul),
+[data-theme="sunny"] .md-editor :deep(.md-editor-preview ol) {
+  color: #1f2937;
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-input) {
+  color: #1f2937;
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-input::placeholder) {
+  color: #9ca3af;
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-toolbar-item) {
+  color: #4b5563;
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-toolbar-item:hover) {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.08);
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-footer) {
+  background: #f8fafc;
+  border-top: 1px solid rgba(59, 130, 246, 0.12);
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-footer-item) {
+  color: #6b7280;
+}
+
+[data-theme="sunny"] .md-editor :deep(.md-editor-input-wrapper::-webkit-scrollbar-track),
+[data-theme="sunny"] .md-editor :deep(.md-editor-preview-wrapper::-webkit-scrollbar-track) {
+  background: #f1f5f9;
+}
+
+/* ===== 暖阳主题：卡片浮起阴影（增强层次感） ===== */
+[data-theme="sunny"] .calendar-header {
+  box-shadow: 0 4px 20px rgba(31, 41, 55, 0.08);
+}
+
+[data-theme="sunny"] .day-cell {
+  box-shadow: 0 2px 10px rgba(31, 41, 55, 0.06);
+}
+
+[data-theme="sunny"] .day-cell:hover {
+  box-shadow: 0 10px 28px rgba(31, 41, 55, 0.12);
+}
+
+[data-theme="sunny"] .week-number {
+  box-shadow: 0 2px 8px rgba(31, 41, 55, 0.05);
+}
+
+[data-theme="sunny"] .modal-content {
+  box-shadow: 0 24px 64px rgba(31, 41, 55, 0.18);
+}
 </style>
+
+

@@ -1,35 +1,179 @@
-:root {
+﻿/* ============= 主题：星夜（默认·深色） ============= */
+:root,
+[data-theme="night"] {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* 页面级配色 */
+  --color-bg-page: #05070f;
+  --color-bg-page-gradient-start: #05070f;
+  --color-bg-page-gradient-end: #0c1128;
+  --color-bg-app: linear-gradient(135deg, #05070f 0%, #0c1128 50%, #070a1a 100%);
+  --color-grid-line: rgba(0, 212, 255, 0.04);
+  --color-glow: rgba(0, 212, 255, 0.10);
+  --color-text-primary: rgba(255, 255, 255, 0.9);
+  --color-text-secondary: rgba(255, 255, 255, 0.55);
+  --color-text-muted: rgba(255, 255, 255, 0.35);
+
+  /* 头部 */
+  --color-bg-header: linear-gradient(135deg, rgba(42, 51, 96, 0.9) 0%, rgba(24, 29, 62, 0.95) 100%);
+  --color-border-header: rgba(var(--color-cyan-rgb), 0.22);
+  --color-header-title-year: #00d4ff;
+  --color-header-title-month: #8b5cf6;
+
+  /* 格子 */
+  --color-bg-cell: linear-gradient(135deg, rgba(38, 46, 88, 0.85) 0%, rgba(22, 27, 58, 0.95) 100%);
+  --color-border-cell: rgba(var(--color-cyan-rgb), 0.16);
+  --color-bg-cell-hover: rgba(var(--color-cyan-rgb), 0.2);
+
+  /* 今天 */
+  --color-bg-today: linear-gradient(135deg, rgba(var(--color-cyan-rgb), 0.15) 0%, rgba(var(--color-purple-rgb), 0.15) 100%);
+  --color-border-today: rgba(var(--color-cyan-rgb), 0.6);
+  --color-today-badge: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%);
+
+  /* 周末 */
+  --color-bg-weekend: linear-gradient(135deg, rgba(52, 32, 72, 0.85) 0%, rgba(28, 18, 48, 0.95) 100%);
+  --color-border-weekend: rgba(var(--color-pink-rgb), 0.28);
+  --color-text-weekend: #f472b6;
+
+  /* 非本月 */
+  --color-bg-other-month: linear-gradient(135deg, rgba(10, 12, 24, 0.5) 0%, rgba(5, 6, 14, 0.65) 100%);
+  --color-border-other-month: rgba(255, 255, 255, 0.03);
+  --color-opacity-other-month: 0.55;
+
+  /* 任务区 */
+  --color-bg-task-section: linear-gradient(135deg, rgba(30, 36, 70, 0.65) 0%, rgba(16, 20, 46, 0.85) 100%);
+  --color-bg-weekend-task: linear-gradient(135deg, rgba(var(--color-pink-rgb), 0.12) 0%, rgba(var(--color-pink-rgb), 0.04) 100%);
+  --color-border-weekend-task: rgba(var(--color-pink-rgb), 0.18);
+
+  /* 强调色 */
+  --color-accent-cyan: #00d4ff;
+  --color-accent-purple: #8b5cf6;
+  --color-accent-pink: #f472b6;
+  --color-accent-green: #22c55e;
+  --color-accent-orange: #f59e0b;
+
+  /* RGB 分量（供 rgba(var(--color-xxx-rgb), alpha) 使用） */
+  --color-cyan-rgb: 0, 212, 255;
+  --color-purple-rgb: 139, 92, 246;
+  --color-pink-rgb: 244, 114, 182;
+  --color-green-rgb: 34, 197, 94;
+  --color-orange-rgb: 245, 158, 11;
+
+  /* 按钮 */
+  --color-nav-btn-bg: linear-gradient(135deg, rgba(var(--color-cyan-rgb), 0.15) 0%, rgba(var(--color-purple-rgb), 0.15) 100%);
+  --color-nav-btn-border: rgba(var(--color-cyan-rgb), 0.3);
+  --color-export-btn-bg: linear-gradient(135deg, rgba(var(--color-green-rgb), 0.15) 0%, rgba(16, 185, 129, 0.15) 100%);
+  --color-export-btn-border: rgba(var(--color-green-rgb), 0.3);
+  --color-summary-btn-bg: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  --color-save-btn-bg: linear-gradient(135deg, #00d4ff 0%, #8b5cf6 100%);
+
+  /* 弹窗 */
+  --color-bg-modal-overlay: rgba(0, 0, 0, 0.7);
+  --color-bg-modal: linear-gradient(135deg, rgba(40, 48, 90, 0.98) 0%, rgba(22, 27, 58, 0.99) 100%);
+  --color-border-modal: rgba(var(--color-cyan-rgb), 0.3);
 }
+
+/* ============= 主题：暖阳（明亮·白天） ============= */
+[data-theme="sunny"] {
+  /* 页面级配色 */
+  --color-bg-page: #e3e9f0;
+  --color-bg-page-gradient-start: #d9e2ec;
+  --color-bg-page-gradient-end: #e7edf3;
+  --color-bg-app: linear-gradient(135deg, #d8e1ec 0%, #e4ebf3 50%, #dfe6ef 100%);
+  --color-grid-line: rgba(59, 130, 246, 0.06);
+  --color-glow: rgba(245, 158, 11, 0.10);
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+
+  /* 头部 */
+  --color-bg-header: linear-gradient(135deg, #ffffff 0%, #f7f9fc 100%);
+  --color-border-header: rgba(59, 130, 246, 0.15);
+  --color-header-title-year: #3b82f6;
+  --color-header-title-month: #10b981;
+
+  /* 格子 */
+  --color-bg-cell: #ffffff;
+  --color-border-cell: rgba(59, 130, 246, 0.12);
+  --color-bg-cell-hover: rgba(59, 130, 246, 0.08);
+
+  /* 今天 */
+  --color-bg-today: linear-gradient(135deg, #dbeafe 0%, #d1fae5 100%);
+  --color-border-today: #3b82f6;
+  --color-today-badge: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+
+  /* 周末 */
+  --color-bg-weekend: linear-gradient(135deg, #fff1e0 0%, #ffe6c9 100%);
+  --color-border-weekend: rgba(var(--color-orange-rgb), 0.28);
+  --color-text-weekend: #ea580c;
+
+  /* 非本月 */
+  --color-bg-other-month: linear-gradient(135deg, #e9eef4 0%, #e2e8ef 100%);
+  --color-border-other-month: rgba(0, 0, 0, 0.05);
+  --color-opacity-other-month: 0.7;
+
+  /* 任务区 */
+  --color-bg-task-section: linear-gradient(135deg, #eef2f7 0%, #e8eef5 100%);
+  --color-bg-weekend-task: linear-gradient(135deg, rgba(245, 158, 11, 0.10) 0%, rgba(245, 158, 11, 0.04) 100%);
+  --color-border-weekend-task: rgba(var(--color-orange-rgb), 0.18);
+
+  /* 强调色 */
+  --color-accent-cyan: #3b82f6;
+  --color-accent-purple: #10b981;
+  --color-accent-pink: #ea580c;
+  --color-accent-green: #22c55e;
+  --color-accent-orange: #f59e0b;
+
+  /* RGB 分量（供 rgba(var(--color-xxx-rgb), alpha) 使用） */
+  --color-cyan-rgb: 59, 130, 246;
+  --color-purple-rgb: 16, 185, 129;
+  --color-pink-rgb: 234, 88, 12;
+  --color-green-rgb: 34, 197, 94;
+  --color-orange-rgb: 245, 158, 11;
+
+  /* 按钮 */
+  --color-nav-btn-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
+  --color-nav-btn-border: rgba(59, 130, 246, 0.25);
+  --color-export-btn-bg: linear-gradient(135deg, rgba(var(--color-green-rgb), 0.12) 0%, rgba(16, 185, 129, 0.12) 100%);
+  --color-export-btn-border: rgba(var(--color-green-rgb), 0.3);
+  --color-summary-btn-bg: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+  --color-save-btn-bg: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+
+  /* 弹窗 */
+  --color-bg-modal-overlay: rgba(0, 0, 0, 0.4);
+  --color-bg-modal: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  --color-border-modal: rgba(59, 130, 246, 0.2);
+}
+
+/* ========== 全局基础样式 ========== */
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: var(--color-accent-cyan);
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  opacity: 0.85;
 }
 
 body {
   margin: 0;
   min-width: 1100px;
-  /* min-width: 2600px; */
   min-height: 100vh;
-  /* overflow-x: hidden; */
+  background: linear-gradient(135deg, var(--color-bg-page-gradient-start) 0%, var(--color-bg-page-gradient-end) 100%);
+  color: var(--color-text-primary);
+  transition: background 0.4s ease, color 0.4s ease;
 }
 
 #app {
   width: 100%;
   text-align: left;
 }
+
+

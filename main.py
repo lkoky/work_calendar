@@ -201,6 +201,14 @@ def create_task(task: TaskCreate):
                 (task.date, task.part, task.task_content, task.task_type)
             )
             task_id = cursor.lastrowid
+
+        # 迁移清理：保存 morning 时，自动删除同日期的 afternoon 残留记录
+        # 新设计不再区分上午/下午，统一存一条 morning 记录
+        if task.part == 'morning':
+            cursor.execute(
+                "DELETE FROM work_tasks WHERE date = ? AND part = 'afternoon'",
+                (task.date,)
+            )
         
         conn.commit()
         

@@ -17,9 +17,10 @@ import Calendar from './components/Calendar.vue';
   margin: 0;
   padding: 20px;
   font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
-  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1428 100%);
+  background: var(--color-bg-app);
   position: relative;
   box-sizing: border-box;
+  transition: background 0.4s ease;
   /* overflow-x: hidden; */
 }
 
@@ -30,8 +31,8 @@ import Calendar from './components/Calendar.vue';
   width: 100%;
   height: 100%;
   background-image: 
-    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
   background-size: 50px 50px;
   pointer-events: none;
   z-index: 0;
@@ -43,7 +44,7 @@ import Calendar from './components/Calendar.vue';
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(0, 212, 255, 0.08) 0%, transparent 50%);
+  background: radial-gradient(circle, var(--color-glow) 0%, transparent 50%);
   animation: rotate 30s linear infinite;
   pointer-events: none;
   z-index: 0;
